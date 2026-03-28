@@ -133,9 +133,9 @@ Workflow: [`.github/workflows/ci-security.yml`](.github/workflows/ci-security.ym
 | Backend tests & coverage | **Jest** | Unit tests; **≥ 80%** coverage on scoped backend modules (see `backend/package.json`). Uploads `lcov.info` and `coverage-summary.json` as artifacts. |
 | Frontend tests & coverage | **Vitest** + **v8** | Unit tests and LCOV under `frontend/coverage/`. |
 | npm audit | npm (×2) | **SCA** on `backend` and `frontend` lockfiles (`--audit-level=high`). Steps use `continue-on-error: true` so the pipeline stays green while you triage; remove that when you want failures to block merges. |
-| OSV-Scanner | [google/osv-scanner-action](https://github.com/google/osv-scanner-action) | **SCA** against [OSV](https://osv.dev/) for lockfiles in the repo. `continue-on-error: true` by default. |
+| OSV-Scanner | [google/osv-scanner-action@v1.9.2](https://github.com/google/osv-scanner-action) | **SCA** against [OSV](https://osv.dev/) for lockfiles in the repo. `continue-on-error: true` by default. |
 | Semgrep | [Semgrep](https://semgrep.dev/) OSS rules | **SAST** (`p/typescript`, `p/javascript`, `p/security-audit`) on `backend/src` and `frontend/src`. `continue-on-error: true` by default. |
-| Trivy | [aquasecurity/trivy-action](https://github.com/aquasecurity/trivy-action) | **Filesystem** vulnerability scan; produces **SARIF** and uploads to **GitHub Code scanning** when Advanced Security / permissions allow (`exit-code: 0` so the job does not fail the workflow). |
+| Trivy | [aquasecurity/trivy-action@v0.28.0](https://github.com/aquasecurity/trivy-action) | **Filesystem** vulnerability scan; produces **SARIF** and uploads to **GitHub Code scanning** when Advanced Security / permissions allow (`exit-code: 0` so the job does not fail the workflow). Tags use a **`v`** prefix (e.g. `v0.28.0`). |
 
 **Optional:** Add a repository secret `CODECOV_TOKEN` and a separate workflow step using [codecov/codecov-action](https://github.com/codecov/codecov-action) if you want hosted coverage trends.
 

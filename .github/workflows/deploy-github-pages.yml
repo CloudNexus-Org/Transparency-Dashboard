@@ -1,11 +1,9 @@
 # AI assisted development
-# Builds the React app and publishes static assets to GitHub Pages.
-# The NestJS API and database are NOT hosted on Pages — set VITE_API_URL to your API origin.
+# Builds the Vite app and pushes static files to the gh-pages branch.
+# This avoids actions/deploy-pages (404 when org/repo has not enabled "GitHub Actions" Pages).
 #
-# PREREQUISITE (or deploy-pages fails with HTTP 404 "Not Found"):
-# Repo → Settings → Pages → Build and deployment → Source → select "GitHub Actions"
-# (NOT "Deploy from a branch"). Save, then re-run this workflow.
-# Org repos: org Settings → Pages / policies may need to allow Pages for this repo.
+# Repo → Settings → Pages → Source: Deploy from a branch
+# Branch: gh-pages  Folder: / (root)  → Save
 
 name: Deploy frontend to GitHub Pages
 
@@ -15,16 +13,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: github-pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -44,7 +40,6 @@ jobs:
       - name: Build static site
         working-directory: frontend
         env:
-          # Project site: https://<owner>.github.io/<repo>/
           VITE_BASE: /${{ github.event.repository.name }}/
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: npm run build
@@ -55,18 +50,9 @@ jobs:
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages branch
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: frontend/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          folder: frontend/dist
+          branch: gh-pages
+          clean: true

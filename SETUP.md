@@ -96,30 +96,26 @@ Change passwords before any real deployment.
 
 ## 6. GitHub Pages (frontend only)
 
-GitHub Pages serves **static files only**. The workflow [`.github/workflows/deploy-github-pages.yml`](.github/workflows/deploy-github-pages.yml) builds the Vite app and deploys `frontend/dist` via **GitHub Actions**.
+GitHub Pages serves **static files only**. The workflow [`.github/workflows/deploy-github-pages.yml`](.github/workflows/deploy-github-pages.yml) builds the Vite app and pushes `frontend/dist` to the **`gh-pages`** branch using [JamesIves/github-pages-deploy-action](https://github.com/JamesIves/github-pages-deploy-action). This avoids `actions/deploy-pages`, which returns **404** for many orgs until “GitHub Actions” Pages is fully enabled.
 
-### Do this **before** the first deploy (avoids `deploy-pages` 404)
+### Configure Pages (once)
 
-The error `Creating Pages deployment failed` / `HttpError: Not Found` almost always means Pages is not configured to use **GitHub Actions** yet.
-
-1. Open **Settings → Pages** for the repository:  
-   `https://github.com/<owner>/<repo>/settings/pages`
-2. Under **Build and deployment**, set **Source** to **GitHub Actions** (not “Deploy from a branch”). Save.
-3. Re-run the failed workflow (**Actions** → workflow run → **Re-run all jobs**).
-
-Until Source is **GitHub Actions**, GitHub’s API has no Actions-based Pages target, so `actions/deploy-pages@v4` returns **404**.
-
-**Organization repositories:** An org owner may need to allow GitHub Pages (and/or “GitHub Actions” as the Pages source) under **Organization settings → Pages** or **Policies**. Private repos may require a paid plan for Pages—check [GitHub Pages documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+1. Open **Settings → Pages**: `https://github.com/<owner>/<repo>/settings/pages`
+2. **Build and deployment → Source:** choose **Deploy from a branch**
+3. **Branch:** `gh-pages`, **Folder:** `/ (root)` → **Save**  
+   (The first workflow run creates `gh-pages`; if the branch is missing, run the workflow once, then set this.)
 
 ### Rest of the setup
 
-1. Add a repository **secret** named `VITE_API_URL` with your **public API base URL** (must include `/api`), for example `https://your-api.railway.app/api`. The SPA calls this origin for login and data; CORS on the API must allow your Pages site (`https://<owner>.github.io`).
-2. Push to `main` (or run the workflow manually). The site will be at  
+1. Add repository **secret** `VITE_API_URL` (public API base URL including `/api`, e.g. `https://your-api.railway.app/api`). CORS on the API must allow `https://<owner>.github.io`.
+2. Push to `main` or run the workflow manually. Site URL:  
    `https://<owner>.github.io/<repository-name>/`  
-   (the workflow sets `VITE_BASE` to `/<repository-name>/` automatically).
-3. Set the backend `FRONTEND_URL` to that same Pages URL so Microsoft OAuth redirect and links match.
+   (`VITE_BASE` is set to `/<repository-name>/` in CI.)
+3. Set backend `FRONTEND_URL` to that Pages URL for Microsoft OAuth.
 
-If `VITE_API_URL` is missing at build time, the bundle will not know where to call the API; sign-in and data requests will fail until you add the secret and re-run the workflow.
+**Org / plan limits:** Pages must be allowed for the repo; see [GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+
+If `VITE_API_URL` is unset at build time, the SPA will not know where to call the API until you add the secret and re-run the workflow.
 
 ## 7. Tests
 

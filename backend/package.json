@@ -90,6 +90,11 @@
       "!**/prisma/prisma.service.ts"
     ],
     "coverageDirectory": "../coverage",
+    "coverageReporters": [
+      "text-summary",
+      "lcov",
+      "json-summary"
+    ],
     "coverageThreshold": {
       "global": {
         "branches": 80,

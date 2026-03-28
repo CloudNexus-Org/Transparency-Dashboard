@@ -1,0 +1,175 @@
+# AI assisted development
+# SAST (Semgrep), SCA (npm audit + OSV-Scanner), Trivy filesystem scan, unit test coverage (backend + frontend).
+
+name: CI — SAST, SCA, Trivy, coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  backend-tests-coverage:
+    name: Backend tests & coverage (Jest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests with coverage (≥80% on scoped modules)
+        run: npm run test:cov
+
+      - name: Upload backend LCOV
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-lcov
+          path: backend/coverage/lcov.info
+          if-no-files-found: warn
+
+      - name: Upload backend coverage summary (JSON)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-summary
+          path: backend/coverage/coverage-summary.json
+          if-no-files-found: warn
+
+  frontend-tests-coverage:
+    name: Frontend tests & coverage (Vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest with coverage
+        run: npm run test:cov
+
+      - name: Upload frontend LCOV
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-lcov
+          path: frontend/coverage/lcov.info
+          if-no-files-found: warn
+
+  npm-audit-sca:
+    name: npm audit (SCA) — ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [backend, frontend]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - run: npm ci
+
+      - name: npm audit (report vulnerabilities in dependencies)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  osv-scanner-sca:
+    name: OSV-Scanner (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action@v1
+        with:
+          scan-args: |-
+            -r
+            --skip-git
+            .
+        continue-on-error: true
+
+  semgrep-sast:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: pip install --upgrade semgrep
+
+      - name: Semgrep scan (TypeScript / JavaScript / security-audit)
+        run: |
+          semgrep scan \
+            --config p/typescript \
+            --config p/javascript \
+            --config p/security-audit \
+            --error \
+            --exclude '**/node_modules/**' \
+            --exclude '**/dist/**' \
+            --exclude '**/coverage/**' \
+            backend/src frontend/src
+        continue-on-error: true
+
+  trivy-fs:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy vulnerability scanner (fs)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          skip-dirs: node_modules,.git,dist,coverage,frontend/node_modules,backend/node_modules
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: '0'
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Trivy SARIF to GitHub Security (Advanced Security)
+        uses: github/codeql-action/upload-sarif@v3
+        if: >
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.fork == false
+        continue-on-error: true
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-fs

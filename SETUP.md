@@ -120,10 +120,26 @@ If `VITE_API_URL` is unset at build time, the SPA will not know where to call th
 ## 7. Tests
 
 Backend unit tests: `cd backend && npm test`  
-Coverage (statements/branches/functions/lines **≥ 80%** on services, guards, `app.controller`, and `jwt.strategy`): `cd backend && npm run test:cov`  
+Backend coverage (statements/branches/functions/lines **≥ 80%** on scoped modules): `cd backend && npm run test:cov`  
+Frontend unit tests + LCOV: `cd frontend && npm run test` / `npm run test:cov`  
 E2E (requires DB + `JWT_SECRET`): `cd backend && npm run test:e2e`
 
-## 8. Production notes
+## 8. CI — SAST, SCA, Trivy, coverage
+
+Workflow: [`.github/workflows/ci-security.yml`](.github/workflows/ci-security.yml) runs on pushes and pull requests to `main`.
+
+| Job | Tool | Purpose |
+|-----|------|--------|
+| Backend tests & coverage | **Jest** | Unit tests; **≥ 80%** coverage on scoped backend modules (see `backend/package.json`). Uploads `lcov.info` and `coverage-summary.json` as artifacts. |
+| Frontend tests & coverage | **Vitest** + **v8** | Unit tests and LCOV under `frontend/coverage/`. |
+| npm audit | npm (×2) | **SCA** on `backend` and `frontend` lockfiles (`--audit-level=high`). Steps use `continue-on-error: true` so the pipeline stays green while you triage; remove that when you want failures to block merges. |
+| OSV-Scanner | [google/osv-scanner-action](https://github.com/google/osv-scanner-action) | **SCA** against [OSV](https://osv.dev/) for lockfiles in the repo. `continue-on-error: true` by default. |
+| Semgrep | [Semgrep](https://semgrep.dev/) OSS rules | **SAST** (`p/typescript`, `p/javascript`, `p/security-audit`) on `backend/src` and `frontend/src`. `continue-on-error: true` by default. |
+| Trivy | [aquasecurity/trivy-action](https://github.com/aquasecurity/trivy-action) | **Filesystem** vulnerability scan; produces **SARIF** and uploads to **GitHub Code scanning** when Advanced Security / permissions allow (`exit-code: 0` so the job does not fail the workflow). |
+
+**Optional:** Add a repository secret `CODECOV_TOKEN` and a separate workflow step using [codecov/codecov-action](https://github.com/codecov/codecov-action) if you want hosted coverage trends.
+
+## 9. Production notes
 
 - Run migrations with `prisma migrate deploy` in CI/CD.
 - Use strong `JWT_SECRET`, TLS termination, and secret storage (Key Vault, etc.).

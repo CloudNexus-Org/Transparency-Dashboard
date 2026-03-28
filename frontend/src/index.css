@@ -1,0 +1,14 @@
+/* AI assisted development */
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --color-surface: oklch(0.99 0.01 260);
+  --color-surface-dark: oklch(0.18 0.03 260);
+}
+
+@layer base {
+  body {
+    @apply antialiased bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+  }
+}

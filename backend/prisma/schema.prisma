@@ -1,0 +1,89 @@
+// AI assisted development
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CLIENT
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id            String            @id @default(cuid())
+  email         String            @unique
+  name          String?
+  passwordHash  String?
+  microsoftSub  String?           @unique
+  role          UserRole          @default(CLIENT)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  memberships   ProjectMember[]
+  notifications Notification[]
+}
+
+model Project {
+  id            String            @id @default(cuid())
+  name          String
+  description   String?
+  startDate     DateTime?
+  targetEndDate DateTime?
+  plannerPlanId String?
+  githubOwner   String?
+  githubRepo    String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  members       ProjectMember[]
+  riskSnapshots RiskSnapshot[]
+  notifications Notification[]
+}
+
+model ProjectMember {
+  id        String  @id @default(cuid())
+  userId    String
+  projectId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model RiskSnapshot {
+  id        String    @id @default(cuid())
+  projectId String
+  level     RiskLevel
+  score     Int
+  factors   Json
+  createdAt DateTime  @default(now())
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String?
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read])
+}

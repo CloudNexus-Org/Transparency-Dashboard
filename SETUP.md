@@ -120,6 +120,7 @@ If `VITE_API_URL` is unset at build time, the SPA will not know where to call th
 ## 7. Tests
 
 Backend unit tests: `cd backend && npm test`  
+Coverage (statements/branches/functions/lines **≥ 80%** on services, guards, `app.controller`, and `jwt.strategy`): `cd backend && npm run test:cov`  
 E2E (requires DB + `JWT_SECRET`): `cd backend && npm run test:e2e`
 
 ## 8. Production notes

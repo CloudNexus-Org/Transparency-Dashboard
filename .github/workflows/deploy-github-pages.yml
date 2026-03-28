@@ -1,6 +1,11 @@
 # AI assisted development
 # Builds the React app and publishes static assets to GitHub Pages.
 # The NestJS API and database are NOT hosted on Pages — set VITE_API_URL to your API origin.
+#
+# PREREQUISITE (or deploy-pages fails with HTTP 404 "Not Found"):
+# Repo → Settings → Pages → Build and deployment → Source → select "GitHub Actions"
+# (NOT "Deploy from a branch"). Save, then re-run this workflow.
+# Org repos: org Settings → Pages / policies may need to allow Pages for this repo.
 
 name: Deploy frontend to GitHub Pages
 
